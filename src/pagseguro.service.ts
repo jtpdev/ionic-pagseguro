@@ -18,8 +18,8 @@ declare var PagSeguroDirectPayment: any;
 @Injectable() 
 export class PagSeguroService {
 
-  //private ZIP_URL = 'https://viacep.com.br/ws';
-  private ZIP_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
+  private ZIP_URL = 'https://viacep.com.br/ws';
+  // private ZIP_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
 
   private scriptLoaded: boolean;
   private options: PagSeguroOptions;
@@ -416,11 +416,18 @@ export class PagSeguroService {
   public fetchZip(zip: string, addToCheckoutData: boolean): Promise<any> {
     //return this.httpClient.get<any>(`${this.ZIP_URL}/${zip}/json`).retry(2);
     //return this.http.get(`${this.ZIP_URL}/${zip}/json`).toPromise();
-    let addressPromise = this.http.get(`${this.ZIP_URL}?address=${zip}&language=pt-BR&region=br&key=${this.apiKey}`).map((res) => res.json()).toPromise();
-    addressPromise.then((info) => {
-      if (addToCheckoutData && info.results && info.results[0]) {
+    // let addressPromise = this.http.get(`${this.ZIP_URL}?address=${zip}&language=pt-BR&region=br&key=${this.apiKey}`).map((res) => res.json()).toPromise();
+    // addressPromise.then((info) => {
+    //   if (addToCheckoutData && info.results && info.results[0]) {
+    //     //this.pagSeguroService.addCheckoutData(this.pagSeguroService.matchAddress(info.results[0]));
+    //     this.matchAddress(info.results[0]);
+    //   }
+    // });
+    let addressPromise = this.http.get(`${this.ZIP_URL}/${zip}/json`).map((res) => res.json()).toPromise();
+    addressPromise.then(res => {
+      if (addToCheckoutData && res) {
         //this.pagSeguroService.addCheckoutData(this.pagSeguroService.matchAddress(info.results[0]));
-        this.matchAddress(info.results[0]);
+        this.matchAddress(res);
       }
     });
 
@@ -447,26 +454,26 @@ export class PagSeguroService {
   public matchAddress(address: any) {
     if (address) {
       this.fetchLatLong(address.geometry.location).then(detailedAddressResult => {
-        let detailedAddress = detailedAddressResult.results && detailedAddressResult.results[0] || null;
+        // let detailedAddress = detailedAddressResult.results && detailedAddressResult.results[0] || null;
 
         let addressData: PagSeguroData = {
           creditCard: {
             billingAddress: {
-              // state: address.uf,
-              // country: 'BRA',
-              // postalCode: address && address.cep ? address.cep.replace('-', '') : '',
-              // number: '',
-              // city: address.localidade,
-              // street: address.logradouro,
-              // district: address.bairro 
-
-              state: this.extractField('administrative_area_level_1', address),
+              state: address.uf,
               country: 'BRA',
-              postalCode: this.extractField('postal_code', address).replace('-', ''),
+              postalCode: address && address.cep ? address.cep.replace('-', '') : '',
               number: '',
-              city: this.extractField('administrative_area_level_2', address),
-              street: detailedAddress ? this.extractField('route', detailedAddress) : '',
-              district: this.extractField('sublocality_level_1', address)
+              city: address.localidade,
+              street: address.logradouro,
+              district: address.bairro 
+
+              // state: this.extractField('administrative_area_level_1', address),
+              // country: 'BRA',
+              // postalCode: this.extractField('postal_code', address).replace('-', ''),
+              // number: '',
+              // city: this.extractField('administrative_area_level_2', address),
+              // street: detailedAddress ? this.extractField('route', detailedAddress) : '',
+              // district: this.extractField('sublocality_level_1', address)
             }
           }
         }
